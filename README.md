@@ -271,8 +271,9 @@ The repo now includes `argo-events/event-source.yaml` and `argo-events/sensor.ya
    docker push "$SMEE_RELAY_IMAGE"
    ```
 4. Edit `argo-events/event-source.yaml` so the `smee-relay` container image matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` with your `$GHCR_REPO` value for the workflow trigger arguments.
-5. Apply the manifests:
+5. Apply the manifests (including the default EventBus the EventSource references):
    ```bash
+   kubectl apply -f argo-events/event-bus.yaml
    kubectl apply -f argo-events/event-source.yaml
    kubectl apply -f argo-events/sensor.yaml
    ```
@@ -323,6 +324,24 @@ kubectl delete -f argocd/root-app-appsets.yaml
 kubectl delete workflowtemplates.argoproj.io/git-build-push -n cicd
 minikube delete
 ```
+
+---
+
+## 8. Verify end-to-end deployment
+
+1. Make a simple change under `apps/my-service` (for example, edit `apps/my-service/app/index.html` so the page text clearly differs) and push it to your fork's `main` branch.
+2. Watch the workflow that the GitHub push triggers and ensure the new image tag reaches GHCR:
+   ```bash
+   argo -n cicd list
+   argo -n cicd watch @latest
+   ```
+3. After the workflow completes, confirm Argo CD synced the change and that the Rollout in Minikube switched to the freshly built image:
+   ```bash
+   kubectl argo rollouts get rollout my-service-dev -n my-service-dev --watch
+   ```
+4. Port-forward the service (`kubectl -n my-service-dev port-forward svc/my-service 8080:80`) and browse `http://localhost:8080` to see the updated page being served from the new container image.
+
+This verification round-trip proves the webhook, EventSource, Workflow, Argo CD, and Rollout all work together to deploy new code onto Minikube automatically.
 
 ---
 
