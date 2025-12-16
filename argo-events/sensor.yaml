@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: github-push
+  namespace: argo-events
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+    - name: push
+      eventSourceName: github-webhook
+      eventName: repo-push
+      filters:
+        data:
+          - path: header.X-GitHub-Event
+            type: string
+            value:
+              - push
+  triggers:
+    - template:
+        name: run-workflow
+        argoWorkflow:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: git-build-
+                namespace: cicd
+              spec:
+                workflowTemplateRef:
+                  name: git-build-push
+                arguments:
+                  parameters:
+                    - name: git-repo
+                      value: ""
+                    - name: git-revision
+                      value: ""
+                    - name: image-name
+                      value: ""
+                    - name: image-tag
+                      value: ""
+      parameters:
+        - src:
+            dependencyName: push
+            dataKey: body.repository.clone_url
+          dest: spec.arguments.parameters.0.value
+        - src:
+            dependencyName: push
+            dataKey: body.after
+          dest: spec.arguments.parameters.1.value
+        - src:
+            dependencyName: push
+            value: ghcr.io/<your-user>/lab24-rollouts
+          dest: spec.arguments.parameters.2.value
+        - src:
+            dependencyName: push
+            dataTemplate: "{{ substr 0 12 .Input.body.after }}"
+          dest: spec.arguments.parameters.3.value
