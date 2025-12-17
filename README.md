@@ -334,6 +334,7 @@ If anything fails, inspect the workflow pod logs (`argo -n cicd logs -w <workflo
 ```bash
 kubectl delete -f argo-events/sensor.yaml
 kubectl delete -f argo-events/event-source.yaml
+kubectl delete -f argo-events/smee-relay-deployment.yaml
 kubectl delete secret smee-relay-url -n argo-events
 kubectl delete -f argocd/root-app-appsets.yaml
 kubectl delete workflowtemplates.argoproj.io/git-build-push -n cicd

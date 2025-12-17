@@ -27,4 +27,4 @@ spec:
                   name: smee-relay-url
                   key: url
             - name: SMEE_TARGET
-              value: http://github-webhook-eventsource.argo-events.svc.cluster.local:12000/payload
+              value: http://github-webhook-eventsource-svc.argo-events.svc.cluster.local:12000/payload
