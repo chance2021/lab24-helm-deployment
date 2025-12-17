@@ -25,3 +25,16 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
+
+smeeRelay:
+  enabled: true
+  image:
+    repository: ghcr.io/example/smee-relay
+    tag: latest
+    pullPolicy: IfNotPresent
+  env:
+    smeeUrl: "https://smee.io/7LAGfktcQ86SAK8w"
+    smeeUrlSecret:
+      name: ""
+      key: ""
+    target: http://127.0.0.1:12000/payload
