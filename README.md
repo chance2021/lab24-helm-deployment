@@ -204,7 +204,7 @@ spec:
     - name: main
       steps:
         - - name: detect-changes-step
-            template: detect-changes
+            template: detect-changes-step
             arguments:
               parameters:
                 - name: git-repo
