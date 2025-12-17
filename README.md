@@ -323,7 +323,7 @@ The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-d
 
 > The Smee relay deployment reads the channel URL from the `smee-relay-url` secret and proxies to `http://github-webhook-eventsource.argo-events.svc.cluster.local:12000/payload`, which is the EventSource service inside the cluster. If you change the EventSource port or endpoint, update the `SMEE_TARGET` env var in `apps/smee-relay/Dockerfile` and `argo-events/smee-relay-deployment.yaml` accordingly. Update `serviceAccountName` in the manifests if you already have dedicated accounts inside `argo-events`, and tweak the Sprig `substr` call in the sensor if you prefer full commit SHAs.
 >
-> The sensor includes CEL `exprs` (combined with `exprLogicalOperator: or`) that (1) ignore pushes whose head commit message contains `[workflow]` and (2) only trigger when the push modifies files under `apps/my-service/app/`. This prevents self-triggered loops and ensures we only build when the app source changes. Update the expressions in `argo-events/sensor.yaml` (plus the workflow commit message) if you change these conventions.
+> The sensor includes CEL `exprs` (combined with `exprLogicalOperator: or`) that (1) ignore pushes whose head commit message contains `[workflow]` and (2) only trigger when the push modifies files under `apps/my-service/app/`. Each expression declares a `body` field so the CEL runtime can reference the webhook payload. Update the expressions in `argo-events/sensor.yaml` (plus the workflow commit message) if you change these conventions.
 
 ---
 
