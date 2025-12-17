@@ -203,7 +203,7 @@ spec:
   templates:
     - name: main
       steps:
-        - - name: detect-changes
+        - - name: detect_changes
             template: detect-changes
             arguments:
               parameters:
@@ -215,10 +215,10 @@ spec:
                   value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
-            when: "{{steps.detect-changes.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detect_changes.outputs.parameters.should-build}} == 'true'"
         - - name: update-values
             template: update-values
-            when: "{{steps.detect-changes.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detect_changes.outputs.parameters.should-build}} == 'true'"
     - name: detect-changes
       inputs:
         parameters:
@@ -238,7 +238,7 @@ spec:
           ZERO_SHA="0000000000000000000000000000000000000000"
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO_SHA" ]; then
             if git rev-parse "${TARGET}^" >/dev/null 2>&1; then
-              BEFORE="${TARGET}^"
+              BEFORE="$(git rev-parse \"${TARGET}^\")"
             else
               echo -n true > /tmp/should-build
               exit 0
