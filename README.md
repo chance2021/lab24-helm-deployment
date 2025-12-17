@@ -252,8 +252,11 @@ spec:
           git checkout "{{inputs.parameters.git-revision}}"
           yq -i ".image.repository = \"{{inputs.parameters.image-name}}\"" apps/my-service/helm/values.yaml
           yq -i ".image.tag = \"{{inputs.parameters.image-tag}}\"" apps/my-service/helm/values.yaml
-          git config user.name "${GIT_USERNAME}"
-          git config user.email "${GIT_EMAIL}"
+          # Ensure git identity is always set even if secrets are blank
+          GIT_NAME="${GIT_USERNAME:-workflow-bot}"
+          GIT_MAIL="${GIT_EMAIL:-workflow@example.com}"
+          git config user.name "${GIT_NAME}"
+          git config user.email "${GIT_MAIL}"
           git commit -am "chore: update rollout image to {{inputs.parameters.image-tag}}"
           git remote set-url origin "https://${GIT_USERNAME}:${GIT_TOKEN}@${GIT_REMOTE}"
           git push origin HEAD:main
