@@ -9,12 +9,23 @@ spec:
     parameters:
       - name: git-repo
       - name: git-revision
+      - name: git-before
       - name: image-name     # e.g. ${GHCR_REPO}
       - name: image-tag
   entrypoint: main
   templates:
     - name: main
       steps:
+        - - name: detect-changes
+            template: detect-changes
+            arguments:
+              parameters:
+                - name: git-repo
+                  value: "{{workflow.parameters.git-repo}}"
+                - name: git-revision
+                  value: "{{workflow.parameters.git-revision}}"
+                - name: git-before
+                  value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
             arguments:
@@ -27,6 +38,7 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
+            when: "{{steps.detect-changes.outputs.parameters.should-build}} == true"
         - - name: update-values
             template: update-values
             arguments:
@@ -39,6 +51,35 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
+            when: "{{steps.detect-changes.outputs.parameters.should-build}} == true"
+    - name: detect-changes
+      inputs:
+        parameters:
+          - name: git-repo
+          - name: git-revision
+          - name: git-before
+      script:
+        image: alpine:3.19
+        command: [sh]
+        source: |
+          set -euo pipefail
+          apk add --no-cache git
+          git clone "{{inputs.parameters.git-repo}}" repo
+          cd repo
+          git fetch origin "{{inputs.parameters.git-revision}}"
+          if [ -n "{{inputs.parameters.git-before}}" ]; then
+            git fetch origin "{{inputs.parameters.git-before}}"
+          fi
+          if git diff --name-only "{{inputs.parameters.git-before}}" "{{inputs.parameters.git-revision}}" -- apps/my-service/app | grep -q .; then
+            echo -n true > /tmp/should-build
+          else
+            echo -n false > /tmp/should-build
+          fi
+        outputs:
+          parameters:
+            - name: should-build
+              valueFrom:
+                path: /tmp/should-build
     - name: build-image
       inputs:
         parameters:

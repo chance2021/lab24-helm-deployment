@@ -16,16 +16,11 @@ spec:
             type: string
             value:
               - push
-        exprLogicalOperator: or
         exprs:
-          - expr: "!matches(headMessage, \"(?s).*\\\\[workflow\\\\].*\")"
+          - expr: "headEmail != \"workflow@example.com\""
             fields:
-              - name: headMessage
-                path: body.head_commit.message
-          - expr: "matches(string(headModified), \"(?s).*apps/my-service/app/.*\")"
-            fields:
-              - name: headModified
-                path: body.head_commit.modified
+              - name: headEmail
+                path: body.head_commit.author.email
   triggers:
     - template:
         name: run-workflow
@@ -50,6 +45,8 @@ spec:
                       value: https://github.com/chance2021/lab24-argo-cicd.git
                     - name: git-revision
                       value: ""
+                    - name: git-before
+                      value: ""
                     - name: image-name
                       value: ghcr.io/chance2021/lab24-argo-cicd
                     - name: image-tag
@@ -65,9 +62,13 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: push
-                value: ghcr.io/chance2021/lab24-argo-cicd
+                dataKey: body.before
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: push
-                dataTemplate: "{{ substr 0 12 .Input.body.after }}"
+                value: ghcr.io/chance2021/lab24-argo-cicd
               dest: spec.arguments.parameters.3.value
+            - src:
+                dependencyName: push
+                dataTemplate: "{{ substr 0 12 .Input.body.after }}"
+              dest: spec.arguments.parameters.4.value

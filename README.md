@@ -155,7 +155,7 @@ kubectl create secret generic github-webhook-secret \
   --from-literal=token="$WEBHOOK_SECRET"
 ```
 
-> Keep the Git automation email at `workflow@example.com` so the workflow commits consistently. Leave the commit message prefix `[workflow]` intact and make sure your pushes touch files under `apps/my-service/app/`, because the sensor filters rely on both conventions (update `argo-events/sensor.yaml` if you need different rules).
+> Keep the Git automation email at `workflow@example.com` so the sensor can identify workflow-authored commits and ignore them. The workflow still labels its commits with a `[workflow]` prefix, but the change-detection guard now runs inside the workflow itself by diffing `apps/my-service/app/`.
 
 ### 2.3 Allow the Argo Workflows controller to operate in `cicd`
 
@@ -196,16 +196,57 @@ spec:
     parameters:
       - name: git-repo
       - name: git-revision
+      - name: git-before
       - name: image-name     # e.g. ${GHCR_REPO}
       - name: image-tag
   entrypoint: main
   templates:
     - name: main
       steps:
+        - - name: detect-changes
+            template: detect-changes
+            arguments:
+              parameters:
+                - name: git-repo
+                  value: "{{workflow.parameters.git-repo}}"
+                - name: git-revision
+                  value: "{{workflow.parameters.git-revision}}"
+                - name: git-before
+                  value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
+            when: "{{steps.detect-changes.outputs.parameters.should-build}} == true"
         - - name: update-values
             template: update-values
+            when: "{{steps.detect-changes.outputs.parameters.should-build}} == true"
+    - name: detect-changes
+      inputs:
+        parameters:
+          - name: git-repo
+          - name: git-revision
+          - name: git-before
+      script:
+        image: alpine:3.19
+        command: [sh]
+        source: |
+          set -euo pipefail
+          apk add --no-cache git
+          git clone "{{inputs.parameters.git-repo}}" repo
+          cd repo
+          git fetch origin "{{inputs.parameters.git-revision}}"
+          if [ -n "{{inputs.parameters.git-before}}" ]; then
+            git fetch origin "{{inputs.parameters.git-before}}"
+          fi
+          if git diff --name-only "{{inputs.parameters.git-before}}" "{{inputs.parameters.git-revision}}" -- apps/my-service/app | grep -q .; then
+            echo -n true > /tmp/should-build
+          else
+            echo -n false > /tmp/should-build
+          fi
+        outputs:
+          parameters:
+            - name: should-build
+              valueFrom:
+                path: /tmp/should-build
     - name: build-image
       inputs:
         parameters:
@@ -323,7 +364,7 @@ The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-d
 
 > The Smee relay deployment reads the channel URL from the `smee-relay-url` secret and proxies to `http://github-webhook-eventsource.argo-events.svc.cluster.local:12000/payload`, which is the EventSource service inside the cluster. If you change the EventSource port or endpoint, update the `SMEE_TARGET` env var in `apps/smee-relay/Dockerfile` and `argo-events/smee-relay-deployment.yaml` accordingly. Update `serviceAccountName` in the manifests if you already have dedicated accounts inside `argo-events`, and tweak the Sprig `substr` call in the sensor if you prefer full commit SHAs.
 >
-> The sensor includes CEL `exprs` (combined with `exprLogicalOperator: or`) that (1) ignore pushes whose head commit message matches the regex `.*\[workflow].*` and (2) only trigger when the head commit modifies files under `apps/my-service/app/` (regex on the modified file list). Each expression binds explicit fields (`headMessage`, `headModified`) to the payload so CEL can evaluate the conditions. Update the expressions in `argo-events/sensor.yaml` (plus the workflow commit message) if you change these conventions.
+> The sensor includes a CEL `expr` that ignores pushes authored by the workflow bot (`workflow@example.com`). Actual change detection happens inside the workflow: the new `detect-changes` step diffs the previous commit against the current one and short-circuits the build if nothing under `apps/my-service/app/` changed. Update `argo-events/sensor.yaml` and the workflow template together if you rename the automation identity or want to watch different paths.
 
 ---
 
@@ -359,7 +400,7 @@ Argo CD now renders the ApplicationSet, which creates one Application per enviro
    kubectl argo rollouts promote my-service-dev-hello-world -n my-service-dev
    ```
 5. Port-forward to the service to see the HTML page served by the updated image.
-   The landing page includes a `Current version` banner plus a reminder to edit something under `apps/my-service/app/` (for example, `index.html`)—change that text, push to GitHub, and watch a new rollout happen end-to-end.
+   The landing page includes a `Current version` banner plus a reminder to edit something under `apps/my-service/app/` (for example, `index.html`)—change that text, push to GitHub, and watch a new rollout happen end-to-end. If your push doesn’t touch that directory the workflow’s change-detection step will exit early and skip the build.
 
 If anything fails, inspect the workflow pod logs (`argo -n cicd logs -w <workflow-name> -s build-image`), and double-check that your secrets and template parameters match your fork and GHCR repository.
 
@@ -383,7 +424,7 @@ minikube delete
 
 ## 8. Verify end-to-end deployment
 
-1. Make a simple change under `apps/my-service/app/` (for example, edit `apps/my-service/app/index.html` so the page text clearly differs) and push it to your fork's `main` branch. The sensor only fires when files in this path change.
+1. Make a simple change under `apps/my-service/app/` (for example, edit `apps/my-service/app/index.html` so the page text clearly differs) and push it to your fork's `main` branch. The workflow inspects the diff and skips builds if that directory didn’t change, so modify something there to see the full pipeline.
 2. Watch the workflow that the GitHub push triggers and ensure the new image tag reaches GHCR:
    ```bash
    argo -n cicd list
@@ -408,7 +449,7 @@ This verification round-trip proves the webhook, EventSource, Workflow, Argo CD,
 
 - **Workflow cannot push to GHCR**: re-create `ghcr-creds` secret; confirm PAT has `write:packages`. Use `kubectl get secret ghcr-creds -n cicd -o yaml` to verify base64 data exists.
 - **Workflow fails to push to GitHub**: ensure `github-token` secret contains `username`, `email`, and `token` keys. Token must allow `repo` scope.
-- **Workflow keeps recreating**: if the sensor triggers on every push (including the workflow’s own `update-values` commit), ensure `argo-events/sensor.yaml` has CEL `exprs` (with `exprLogicalOperator: or`) that ignore the `[workflow]` commit message prefix (regex) and require modifications under `apps/my-service/app/`. Also confirm the field bindings (e.g., `headMessage`, `headModified`) point to the correct payload paths.
+- **Workflow keeps recreating**: if the sensor triggers on every push (including the workflow’s own `update-values` commit), ensure `argo-events/sensor.yaml` filters out the workflow bot email (`workflow@example.com`). The workflow itself now checks for changes under `apps/my-service/app/`, so update the `detect-changes` step if you need different paths or if you rename the bot identity.
 - **Workflow fails to build context**: confirm the git artifact is mounted and the Kaniko context points to the service directory (`dir:///workspace/src/apps/my-service`). See `argo-workflows/workflow-template.yaml`.
 - **Workflow cannot create workflowtaskresults**: verify the `workflow-runner` Role in `cicd` includes the `workflowtaskresults` resource under the `argoproj.io` API group.
 - **Sensor does not trigger**: check `kubectl -n argo-events get eventsources,sensors,pods`. Describe the sensor to see last event.
