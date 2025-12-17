@@ -50,7 +50,7 @@ spec:
         image: gcr.io/kaniko-project/executor:v1.16.0
         command: ["/kaniko/executor"]
         args:
-          - "--context={{inputs.parameters.git-repo | replace \"https://\" \"git://\" }}#{{inputs.parameters.git-revision}}"
+          - "--context={{ sprig.replace \"https://\" \"git://\" .inputs.parameters.git-repo }}#{{inputs.parameters.git-revision}}"
           - "--destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}"
           - "--dockerfile=apps/my-service/Dockerfile"
           - "--snapshotMode=redo"
