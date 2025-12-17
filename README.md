@@ -203,8 +203,8 @@ spec:
   templates:
     - name: main
       steps:
-        - - name: detect-changes-step
-            template: detect-changes-step
+        - - name: detectchanges
+            template: detectchanges
             arguments:
               parameters:
                 - name: git-repo
@@ -215,11 +215,11 @@ spec:
                   value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
-            when: "{{steps['detect-changes-step'].outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
         - - name: update-values
             template: update-values
-            when: "{{steps['detect-changes-step'].outputs.parameters.should-build}} == 'true'"
-    - name: detect-changes-step
+            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
+    - name: detectchanges
       inputs:
         parameters:
           - name: git-repo
