@@ -17,8 +17,28 @@ spec:
       steps:
         - - name: build-image
             template: build-image
+            arguments:
+              parameters:
+                - name: git-repo
+                  value: "{{workflow.parameters.git-repo}}"
+                - name: git-revision
+                  value: "{{workflow.parameters.git-revision}}"
+                - name: image-name
+                  value: "{{workflow.parameters.image-name}}"
+                - name: image-tag
+                  value: "{{workflow.parameters.image-tag}}"
         - - name: update-values
             template: update-values
+            arguments:
+              parameters:
+                - name: git-repo
+                  value: "{{workflow.parameters.git-repo}}"
+                - name: git-revision
+                  value: "{{workflow.parameters.git-revision}}"
+                - name: image-name
+                  value: "{{workflow.parameters.image-name}}"
+                - name: image-tag
+                  value: "{{workflow.parameters.image-tag}}"
     - name: build-image
       inputs:
         parameters:
