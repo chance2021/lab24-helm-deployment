@@ -272,9 +272,11 @@ The repo now includes `argo-events/event-source.yaml` and `argo-events/sensor.ya
      ```
 3. Build and push the relay image:
    ```bash
+   export SMEE_RELAY_IMAGE="ghcr.io/${GITHUB_USER}/smee-relay:latest"
    docker build -t "$SMEE_RELAY_IMAGE" apps/smee-relay
    docker push "$SMEE_RELAY_IMAGE"
    ```
+   > Use `SMEE_RELAY_IMAGE=ghcr.io/${GITHUB_USER}/smee-relay:latest` so the Rollout sidecar and/or EventSource refer to the same artifact.
 4. Edit `argo-events/event-source.yaml` so the `smee-relay` container image matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` with your `$GHCR_REPO` value for the workflow trigger arguments.
 5. Apply the manifests (including the default EventBus the EventSource references):
    ```bash

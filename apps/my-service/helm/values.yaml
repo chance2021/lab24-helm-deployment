@@ -32,7 +32,7 @@ rollout:
 smeeRelay:
   enabled: false
   image:
-    repository: ghcr.io/example/smee-relay
+    repository: ghcr.io/chance2021/smee-relay
     tag: latest
     pullPolicy: IfNotPresent
   env:
