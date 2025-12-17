@@ -215,10 +215,10 @@ spec:
                   value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
-            when: "{{steps.detectchanges.outputs.result}} == 'true'"
+            when: "{{steps.detectchanges.outputs.parameters.should-build}} == \"true\""
         - - name: update-values
             template: update-values
-            when: "{{steps.detectchanges.outputs.result}} == 'true'"
+            when: "{{steps.detectchanges.outputs.parameters.should-build}} == \"true\""
     - name: detectchanges
       inputs:
         parameters:
@@ -240,15 +240,20 @@ spec:
             if git rev-parse "${TARGET}^" >/dev/null 2>&1; then
               BEFORE="$(git rev-parse "${TARGET}^")"
             else
-              printf true
+              printf true > /tmp/should-build
               exit 0
             fi
           fi
           if git diff --name-only "$BEFORE" "$TARGET" -- apps/my-service/app | grep -q .; then
-            printf true
+            printf true > /tmp/should-build
           else
-            printf false
+            printf false > /tmp/should-build
           fi
+        outputs:
+          parameters:
+            - name: should-build
+              valueFrom:
+                path: /tmp/should-build
     - name: build-image
       inputs:
         parameters:
