@@ -24,6 +24,7 @@ GitHub push → Smee webhook relay → Argo EventSource → Sensor → Argo Work
 | `argo-events/event-source.yaml` | GitHub webhook EventSource that listens for repo push events. |
 | `argo-events/sensor.yaml` | Sensor that triggers the workflow template from push events. |
 | `argo-events/smee-relay-deployment.yaml` | Smee relay deployment that forwards GitHub webhooks into the EventSource service. |
+| `argo-events/workflow-trigger-rbac.yaml` | RBAC letting the Argo Events service account submit workflows in `cicd`. |
 | `apps/smee-relay/Dockerfile` | Build context for the lightweight Smee relay container image. |
 
 The Helm chart already ships with a canary Rollout (`apps/my-service/helm/templates/rollout.yaml`). Argo CD points at `apps/my-service/helm` and uses the correct environment specific `values-*.yaml` files.
@@ -279,7 +280,11 @@ The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-d
    ```
    > Publish the repository (e.g., `ghcr.io/chance2021/smee-relay:latest`) as **public** in GitHub Packages so your cluster can pull it without extra credentials and your local builds can `docker pull` it for verification.
 4. Edit `argo-events/smee-relay-deployment.yaml` so the image reference matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` with your `$GHCR_REPO` value for the workflow trigger arguments if it still points at the example repo.
-5. Apply the manifests (including the default EventBus and relay deployment the EventSource expects):
+5. Grant the Argo Events service account permission to submit workflows in `cicd`:
+   ```bash
+   kubectl apply -f argo-events/workflow-trigger-rbac.yaml
+   ```
+6. Apply the remaining manifests (including the default EventBus and relay deployment the EventSource expects):
    ```bash
    kubectl apply -f argo-events/event-bus.yaml
    kubectl apply -f argo-events/event-source.yaml
@@ -334,6 +339,7 @@ If anything fails, inspect the workflow pod logs (`argo -n cicd logs -w <workflo
 ```bash
 kubectl delete -f argo-events/sensor.yaml
 kubectl delete -f argo-events/event-source.yaml
+kubectl delete -f argo-events/workflow-trigger-rbac.yaml
 kubectl delete -f argo-events/smee-relay-deployment.yaml
 kubectl delete secret smee-relay-url -n argo-events
 kubectl delete -f argocd/root-app-appsets.yaml
