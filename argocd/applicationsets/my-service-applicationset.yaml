@@ -28,7 +28,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/chance2021/lab24-helm-deployment.git
+        repoURL: https://github.com/chance2021/lab24-argo-cicd.git
         targetRevision: main
         path: apps/my-service/helm
         helm:

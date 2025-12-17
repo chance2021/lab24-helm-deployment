@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/chance2021/lab24-helm-deployment.git   # ⬅️ change this
+    repoURL: https://github.com/chance2021/lab24-argo-cicd.git   # ⬅️ change this
     targetRevision: main                                        # ⬅️ branch/tag
     path: argocd/applicationsets                                # ⬅️ folder with ApplicationSets
   destination:
