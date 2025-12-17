@@ -38,7 +38,7 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
-            when: "{{steps.detectchanges.outputs.parameters.should_build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.parameters.shouldBuild}} == 'true'"
         - - name: update-values
             template: update-values
             arguments:
@@ -51,7 +51,7 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
-            when: "{{steps.detectchanges.outputs.parameters.should_build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.parameters.shouldBuild}} == 'true'"
     - name: detectchanges
       inputs:
         parameters:
@@ -77,23 +77,23 @@ spec:
               BEFORE="$(git rev-parse "${TARGET}^")"
             else
             echo "No prior commit found, forcing build" >&2
-            printf true > /tmp/should_build
-            exit 0
-          fi
+              printf true > /tmp/shouldBuild
+              exit 0
+            fi
           fi
           echo git diff --name-only "$BEFORE" "$TARGET" >&2
           if git diff --name-only "$BEFORE" "$TARGET" -- apps/my-service/app | grep -q .; then
             echo "Changes detected in apps/my-service/app, proceeding with build." >&2
-            printf true > /tmp/should_build
+            printf true > /tmp/shouldBuild
           else
             echo "No changes detected in apps/my-service/app, skipping build." >&2
-            printf false > /tmp/should_build
+            printf false > /tmp/shouldBuild
           fi
         outputs:
           parameters:
-            - name: should_build
+            - name: shouldBuild
               valueFrom:
-                path: /tmp/should_build
+                path: /tmp/shouldBuild
     - name: build-image
       inputs:
         parameters:
