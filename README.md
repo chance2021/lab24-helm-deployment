@@ -25,6 +25,7 @@ GitHub push → Smee webhook relay → Argo EventSource → Sensor → Argo Work
 | `argo-events/sensor.yaml` | Sensor that triggers the workflow template from push events. |
 | `argo-events/smee-relay-deployment.yaml` | Smee relay deployment that forwards GitHub webhooks into the EventSource service. |
 | `argo-events/workflow-trigger-rbac.yaml` | RBAC letting the Argo Events service account submit workflows in `cicd`. |
+| `argo-workflows/controller-namespace-rbac.yaml` | RBAC so the Argo Workflows controller in `argo` can manage resources in `cicd`. |
 | `apps/smee-relay/Dockerfile` | Build context for the lightweight Smee relay container image. |
 
 The Helm chart already ships with a canary Rollout (`apps/my-service/helm/templates/rollout.yaml`). Argo CD points at `apps/my-service/helm` and uses the correct environment specific `values-*.yaml` files.
@@ -74,7 +75,7 @@ Install the controllers (pin the versions appropriate for your cluster):
 
 ```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl apply -n cicd -f https://github.com/argoproj/argo-workflows/releases/latest/download/install.yaml
+kubectl apply -n argo -f https://github.com/argoproj/argo-workflows/releases/latest/download/install.yaml
 kubectl apply -n argo-events -f https://github.com/argoproj/argo-events/releases/latest/download/install.yaml
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 ```
@@ -153,6 +154,14 @@ kubectl create secret generic github-webhook-secret \
   --namespace argo-events \
   --from-literal=token="$WEBHOOK_SECRET"
 ```
+
+### 2.3 Allow the Argo Workflows controller to operate in `cicd`
+
+```bash
+kubectl apply -f argo-workflows/controller-namespace-rbac.yaml
+```
+
+This grants the `argo-workflow-controller` service account (used by the controller running in the `argo` namespace) permission to read secrets and manage workflow pods in `cicd`. If you renamed the controller service account, update the manifest accordingly.
 
 ---
 
@@ -342,6 +351,7 @@ kubectl delete -f argo-events/event-source.yaml
 kubectl delete -f argo-events/workflow-trigger-rbac.yaml
 kubectl delete -f argo-events/smee-relay-deployment.yaml
 kubectl delete secret smee-relay-url -n argo-events
+kubectl delete -f argo-workflows/controller-namespace-rbac.yaml
 kubectl delete -f argocd/root-app-appsets.yaml
 kubectl delete workflowtemplates.argoproj.io/git-build-push -n cicd
 minikube delete

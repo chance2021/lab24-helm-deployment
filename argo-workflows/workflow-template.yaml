@@ -48,6 +48,7 @@ spec:
           - name: image-tag
       container:
         image: gcr.io/kaniko-project/executor:v1.16.0
+        command: ["/kaniko/executor"]
         args:
           - "--context={{inputs.parameters.git-repo}}#{{inputs.parameters.git-revision}}"
           - "--destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}"
