@@ -71,8 +71,10 @@ spec:
           BEFORE="$(printf %s "{{inputs.parameters.git-before}}" | tr -d '\r')"
           if [ -z "$TARGET" ] || [ "$TARGET" = "$ZERO_SHA" ]; then
             TARGET="$(git rev-parse origin/HEAD)"
+            echo "No target commit specified, using HEAD: $TARGET" >&2
           else
             git fetch origin "$TARGET" >&2 || true
+            echo "Using specified target commit: $TARGET" >&2
           fi
           echo "Target commit: $TARGET" >&2
           echo "Before commit: $BEFORE" >&2
@@ -82,6 +84,7 @@ spec:
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO_SHA" ]; then
             if git rev-parse "${TARGET}^" >/dev/null 2>&1; then
               BEFORE="$(git rev-parse "${TARGET}^")"
+              echo "No prior commit specified, using parent: $BEFORE" >&2
             else
               echo "No prior commit found, forcing build" >&2
               printf true
