@@ -37,7 +37,7 @@ spec:
                 arguments:
                   parameters:
                     - name: git-repo
-                      value: ""
+                      value: https://github.com/chance2021/lab24-helm-deployment.git
                     - name: git-revision
                       value: ""
                     - name: image-name
@@ -45,10 +45,6 @@ spec:
                     - name: image-tag
                       value: ""
       parameters:
-        - src:
-            dependencyName: push
-            dataKey: body.repository.clone_url
-          dest: spec.arguments.parameters.0.value
         - src:
             dependencyName: push
             dataKey: body.after
