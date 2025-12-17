@@ -12,7 +12,7 @@ spec:
       eventName: repo-push
       filters:
         data:
-          - path: header.X-GitHub-Event
+          - path: header.X-Github-Event
             type: string
             value:
               - push
