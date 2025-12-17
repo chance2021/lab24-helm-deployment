@@ -18,14 +18,14 @@ spec:
               - push
         exprLogicalOperator: or
         exprs:
-          - expr: "not contains(body.head_commit.message, \"[workflow]\")"
+          - expr: "not contains(headMessage, \"[workflow]\")"
             fields:
-              - name: body
-                path: body
-          - expr: "body.commits.exists(c, c.modified.exists(m, m.startsWith(\"apps/my-service/app/\")))"
+              - name: headMessage
+                path: body.head_commit.message
+          - expr: "commits.exists(c, c.modified.exists(m, m.startsWith(\"apps/my-service/app/\")))"
             fields:
-              - name: body
-                path: body
+              - name: commits
+                path: body.commits
   triggers:
     - template:
         name: run-workflow
