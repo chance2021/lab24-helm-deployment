@@ -11,33 +11,6 @@ spec:
         targetPort: 12000
   template:
     serviceAccountName: argo-events-sa
-    podSpecPatch: |
-      [
-        {
-          "op": "add",
-          "path": "/containers/-",
-          "value": {
-            "name": "smee-relay",
-            "image": "ghcr.io/${GIT_USERNAME}/smee-relay:latest",
-            "imagePullPolicy": "IfNotPresent",
-            "env": [
-              {
-                "name": "SMEE_URL",
-                "valueFrom": {
-                  "secretKeyRef": {
-                    "name": "smee-relay-url",
-                    "key": "url"
-                  }
-                }
-              },
-              {
-                "name": "SMEE_TARGET",
-                "value": "http://127.0.0.1:12000/payload"
-              }
-            ]
-          }
-        }
-      ]
   webhook:
     repo-push:
       port: "12000"

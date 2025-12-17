@@ -32,28 +32,6 @@ spec:
             httpGet:
               path: /
               port: http
-{{- if .Values.smeeRelay.enabled }}
-        - name: smee-relay
-          image: "{{ .Values.smeeRelay.image.repository }}:{{ .Values.smeeRelay.image.tag }}"
-          imagePullPolicy: {{ .Values.smeeRelay.image.pullPolicy }}
-{{- with .Values.smeeRelay.env }}
-          env:
-{{- if and .smeeUrlSecret .smeeUrlSecret.name .smeeUrlSecret.key }}
-            - name: SMEE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .smeeUrlSecret.name }}
-                  key: {{ .smeeUrlSecret.key }}
-{{- else if .smeeUrl }}
-            - name: SMEE_URL
-              value: "{{ .smeeUrl }}"
-{{- end }}
-{{- if .target }}
-            - name: SMEE_TARGET
-              value: "{{ .target }}"
-{{- end }}
-{{- end }}
-{{- end }}
   strategy:
     canary:
       {{- with .Values.rollout.strategy.canary.trafficRouting }}

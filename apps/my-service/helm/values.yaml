@@ -28,16 +28,3 @@ rollout:
         - setWeight: 50
         - pause: {}
       trafficRouting: {}
-
-smeeRelay:
-  enabled: false
-  image:
-    repository: ghcr.io/chance2021/smee-relay
-    tag: latest
-    pullPolicy: IfNotPresent
-  env:
-    smeeUrl: ""
-    smeeUrlSecret:
-      name: ""
-      key: ""
-    target: http://127.0.0.1:12000/payload

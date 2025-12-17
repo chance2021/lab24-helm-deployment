@@ -19,10 +19,11 @@ GitHub push → Smee webhook relay → Argo EventSource → Sensor → Argo Work
 | Path | Description |
 | --- | --- |
 | `apps/my-service/Dockerfile` | Minimal NGINX-based image that serves `app/index.html`. |
-| `apps/my-service/helm/` | Helm chart that renders an `argoproj.io/v1alpha1` Rollout plus Service (and optionally a `smee-relay` sidecar via `.Values.smeeRelay`). |
+| `apps/my-service/helm/` | Helm chart that renders an `argoproj.io/v1alpha1` Rollout plus Service. |
 | `argocd/` | Root Application and ApplicationSet manifests for Argo CD. |
-| `argo-events/event-source.yaml` | GitHub webhook EventSource with an embedded Smee relay sidecar. |
+| `argo-events/event-source.yaml` | GitHub webhook EventSource that listens for repo push events. |
 | `argo-events/sensor.yaml` | Sensor that triggers the workflow template from push events. |
+| `argo-events/smee-relay-deployment.yaml` | Smee relay deployment that forwards GitHub webhooks into the EventSource service. |
 | `apps/smee-relay/Dockerfile` | Build context for the lightweight Smee relay container image. |
 
 The Helm chart already ships with a canary Rollout (`apps/my-service/helm/templates/rollout.yaml`). Argo CD points at `apps/my-service/helm` and uses the correct environment specific `values-*.yaml` files.
@@ -256,7 +257,7 @@ spec:
 
 ## 4. Configure Argo Events + in-cluster Smee relay
 
-The repo now includes `argo-events/event-source.yaml` and `argo-events/sensor.yaml`. Pair these with the lightweight Smee relay image under `apps/smee-relay/` (run it wherever you like) so GitHub webhook traffic is forwarded into the EventSource service—no manual port-forwarding required.
+The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-deployment.yaml`, and `argo-events/sensor.yaml`. The Smee relay runs as its own deployment in the `argo-events` namespace and forwards GitHub webhook traffic into the EventSource service—no manual port-forwarding required.
 
 1. Browse to [https://smee.io](https://smee.io) and click **Start a new channel**. Copy the unique HTTPS URL (e.g. `https://smee.io/abc123`).
 2. In your GitHub fork open **Settings → Webhooks** and add a webhook:
@@ -264,7 +265,7 @@ The repo now includes `argo-events/event-source.yaml` and `argo-events/sensor.ya
    - Content type: `application/json`
    - Secret: the same value stored in `github-webhook-secret`.
    - Select **Just the push event**.
-   - After saving the webhook, store the relay URL in the cluster so the sidecar can read it:
+   - After saving the webhook, store the relay URL in the cluster so the relay deployment can read it:
      ```bash
      kubectl create secret generic smee-relay-url \
        --namespace argo-events \
@@ -277,19 +278,16 @@ The repo now includes `argo-events/event-source.yaml` and `argo-events/sensor.ya
    docker push "$SMEE_RELAY_IMAGE"
    ```
    > Publish the repository (e.g., `ghcr.io/chance2021/smee-relay:latest`) as **public** in GitHub Packages so your cluster can pull it without extra credentials and your local builds can `docker pull` it for verification.
-4. Edit `argo-events/event-source.yaml` so the `smee-relay` container image matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` with your `$GHCR_REPO` value for the workflow trigger arguments.
-5. Apply the manifests (including the default EventBus the EventSource references):
+4. Edit `argo-events/smee-relay-deployment.yaml` so the image reference matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` with your `$GHCR_REPO` value for the workflow trigger arguments if it still points at the example repo.
+5. Apply the manifests (including the default EventBus and relay deployment the EventSource expects):
    ```bash
    kubectl apply -f argo-events/event-bus.yaml
    kubectl apply -f argo-events/event-source.yaml
+   kubectl apply -f argo-events/smee-relay-deployment.yaml
    kubectl apply -f argo-events/sensor.yaml
    ```
 
-> The Smee sidecar reads the channel URL from the `smee-relay-url` secret and proxies to `http://127.0.0.1:12000/payload`, which is the webhook listener running in the same pod. If you change the EventSource port or endpoint, update the `SMEE_TARGET` env var in `apps/smee-relay/Dockerfile` accordingly. Update `serviceAccountName` in the manifests if you already have dedicated accounts inside `argo-events`, and tweak the Sprig `substr` call in the sensor if you prefer full commit SHAs.
-
-### Optional: embed the relay in the sample workload
-
-If you want to co-locate the Smee relay with the sample `my-service` pods (purely for lab/demo purposes), set `.Values.smeeRelay.enabled: true` in the appropriate values file (or pass it via your ApplicationSet parameters). Provide either `smeeRelay.env.smeeUrl` (literal URL) or `smeeRelay.env.smeeUrlSecret` (name/key of a secret that contains the URL in the target namespace) plus `smeeRelay.env.target`. The Helm template will append the `smee-relay` container to the Rollout pod template so you can observe a multi-container rollout.
+> The Smee relay deployment reads the channel URL from the `smee-relay-url` secret and proxies to `http://github-webhook-eventsource.argo-events.svc.cluster.local:12000/payload`, which is the EventSource service inside the cluster. If you change the EventSource port or endpoint, update the `SMEE_TARGET` env var in `apps/smee-relay/Dockerfile` and `argo-events/smee-relay-deployment.yaml` accordingly. Update `serviceAccountName` in the manifests if you already have dedicated accounts inside `argo-events`, and tweak the Sprig `substr` call in the sensor if you prefer full commit SHAs.
 
 ---
 
@@ -308,9 +306,10 @@ Argo CD now renders the ApplicationSet, which creates one Application per enviro
 ## 6. Run the lab
 
 1. Commit and push a change to your fork (anything—`README` tweaks work) so GitHub fires a push event.
-2. Confirm the webhook is delivered by watching the EventSource pod logs (both the main container and the `smee-relay` sidecar show activity). The sensor should immediately submit a workflow:
+2. Confirm the webhook is delivered by watching the EventSource pod logs (and optionally the standalone `smee-relay` deployment). The sensor should immediately submit a workflow:
    ```bash
-   kubectl -n argo-events logs deploy/github-webhook-eventsource -c smee-relay | tail
+   kubectl -n argo-events logs deploy/github-webhook-eventsource | tail
+   kubectl -n argo-events logs deploy/smee-relay | tail
    argo -n cicd list
    argo -n cicd get <workflow-name>
    ```
