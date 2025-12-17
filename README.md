@@ -215,10 +215,10 @@ spec:
                   value: "{{workflow.parameters.git-before}}"
         - - name: build-image
             template: build-image
-            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.result}} == 'true'"
         - - name: update-values
             template: update-values
-            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.result}} == 'true'"
     - name: detectchanges
       inputs:
         parameters:
@@ -231,29 +231,24 @@ spec:
         source: |
           set -euo pipefail
           apk add --no-cache git
-          git clone "{{inputs.parameters.git-repo}}" repo
+          git clone "{{inputs.parameters.git-repo}}" repo >&2
           cd repo
-          TARGET="$(echo "{{inputs.parameters.git-revision}}" | tr -d '\r')"
-          BEFORE="$(echo "{{inputs.parameters.git-before}}" | tr -d '\r')"
+          TARGET="$(printf %s "{{inputs.parameters.git-revision}}" | tr -d '\r')"
+          BEFORE="$(printf %s "{{inputs.parameters.git-before}}" | tr -d '\r')"
           ZERO_SHA="0000000000000000000000000000000000000000"
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO_SHA" ]; then
             if git rev-parse "${TARGET}^" >/dev/null 2>&1; then
-              BEFORE="$(git rev-parse \"${TARGET}^\")"
+              BEFORE="$(git rev-parse "${TARGET}^")"
             else
-              echo -n true > /tmp/should-build
+              printf true
               exit 0
             fi
           fi
           if git diff --name-only "$BEFORE" "$TARGET" -- apps/my-service/app | grep -q .; then
-            echo -n true > /tmp/should-build
+            printf true
           else
-            echo -n false > /tmp/should-build
+            printf false
           fi
-        outputs:
-          parameters:
-            - name: should-build
-              valueFrom:
-                path: /tmp/should-build
     - name: build-image
       inputs:
         parameters:

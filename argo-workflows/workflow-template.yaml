@@ -38,7 +38,7 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
-            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.result}} == 'true'"
         - - name: update-values
             template: update-values
             arguments:
@@ -51,7 +51,7 @@ spec:
                   value: "{{workflow.parameters.image-name}}"
                 - name: image-tag
                   value: "{{workflow.parameters.image-tag}}"
-            when: "{{steps.detectchanges.outputs.parameters.should-build}} == 'true'"
+            when: "{{steps.detectchanges.outputs.result}} == 'true'"
     - name: detectchanges
       inputs:
         parameters:
@@ -64,36 +64,31 @@ spec:
         source: |
           set -euo pipefail
           apk add --no-cache git
-          echo "Cloning repo {{inputs.parameters.git-repo}}"
-          git clone "{{inputs.parameters.git-repo}}" repo
+          echo "Cloning repo {{inputs.parameters.git-repo}}" >&2
+          git clone "{{inputs.parameters.git-repo}}" repo >&2
           cd repo
-          TARGET="$(echo "{{inputs.parameters.git-revision}}" | tr -d '\r')"
-          BEFORE="$(echo "{{inputs.parameters.git-before}}" | tr -d '\r')"
-          echo "Target commit: $TARGET"
-          echo "Before commit: $BEFORE"
+          TARGET="$(printf %s "{{inputs.parameters.git-revision}}" | tr -d '\r')"
+          BEFORE="$(printf %s "{{inputs.parameters.git-before}}" | tr -d '\r')"
+          echo "Target commit: $TARGET" >&2
+          echo "Before commit: $BEFORE" >&2
           ZERO_SHA="0000000000000000000000000000000000000000"
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "$ZERO_SHA" ]; then
             if git rev-parse "${TARGET}^" >/dev/null 2>&1; then
-              BEFORE="$(git rev-parse \"${TARGET}^\")"
+              BEFORE="$(git rev-parse "${TARGET}^")"
             else
-              echo "No prior commit found, forcing build"
-              echo -n true > /tmp/should-build
+              echo "No prior commit found, forcing build" >&2
+              printf true
               exit 0
             fi
           fi
-          echo git diff --name-only "$BEFORE" "$TARGET"
+          echo git diff --name-only "$BEFORE" "$TARGET" >&2
           if git diff --name-only "$BEFORE" "$TARGET" -- apps/my-service/app | grep -q .; then
-            echo "Changes detected in apps/my-service/app, proceeding with build."
-            echo -n true > /tmp/should-build
+            echo "Changes detected in apps/my-service/app, proceeding with build." >&2
+            printf true
           else
-            echo "No changes detected in apps/my-service/app, skipping build."
-            echo -n false > /tmp/should-build
+            echo "No changes detected in apps/my-service/app, skipping build." >&2
+            printf false
           fi
-        outputs:
-          parameters:
-            - name: should-build
-              valueFrom:
-                path: /tmp/should-build
     - name: build-image
       inputs:
         parameters:
