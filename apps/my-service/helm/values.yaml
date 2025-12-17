@@ -1,22 +1,17 @@
 replicaCount: 2
-
 image:
-  repository: ghcr.io/example/lab24-argorollout
+  repository: ghcr.io/chance2021/lab24-argo-cicd
   pullPolicy: IfNotPresent
-  tag: ""
-
+  tag: "644ea7cf3469"
 nameOverride: ""
 fullnameOverride: ""
-
 serviceAccount:
   create: true
   annotations: {}
   name: ""
-
 service:
   type: ClusterIP
   port: 80
-
 rollout:
   revisionHistoryLimit: 3
   strategy:
