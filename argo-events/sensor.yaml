@@ -18,11 +18,11 @@ spec:
               - push
         exprLogicalOperator: or
         exprs:
-          - expr: "!contains(headMessage, \"[workflow]\")"
+          - expr: "!headMessage.matches(\".*\\\\[workflow\\\\].*\")"
             fields:
               - name: headMessage
                 path: body.head_commit.message
-          - expr: "contains(string(headModified), \"apps/my-service/app/\")"
+          - expr: "string(headModified).matches(\".*apps/my-service/app/.*\")"
             fields:
               - name: headModified
                 path: body.head_commit.modified
