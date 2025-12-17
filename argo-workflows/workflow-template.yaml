@@ -67,7 +67,9 @@ spec:
           REPO="{{inputs.parameters.git-repo}}"
           TARGET_RAW="{{inputs.parameters.git-revision}}"
           BEFORE_RAW="{{inputs.parameters.git-before}}"
+          TAG="{{inputs.parameters.image-tag}}"
           echo "Cloning repo ${REPO}" >&2
+          echo "Using tag ${TAG}" >&2
           git clone "${REPO}" repo >&2
           cd repo
           ZERO_SHA="0000000000000000000000000000000000000000"
