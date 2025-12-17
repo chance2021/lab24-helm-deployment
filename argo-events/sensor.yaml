@@ -18,6 +18,7 @@ spec:
               - push
         exprLogical:
           - expr: "not contains(body.head_commit.message, \"[workflow]\")"
+          - expr: "body.commits.exists(c, c.modified.exists(m, m.startsWith(\"apps/my-service/app/\")))"
   triggers:
     - template:
         name: run-workflow

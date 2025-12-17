@@ -155,7 +155,7 @@ kubectl create secret generic github-webhook-secret \
   --from-literal=token="$WEBHOOK_SECRET"
 ```
 
-> Keep the Git automation email at `workflow@example.com` so the workflow commits consistently, and leave the commit message prefix `[workflow]` intact (or update `argo-events/sensor.yaml`) so the sensor can detect and ignore automation pushes.
+> Keep the Git automation email at `workflow@example.com` so the workflow commits consistently. Leave the commit message prefix `[workflow]` intact and make sure your pushes touch files under `apps/my-service/app/`, because the sensor filters rely on both conventions (update `argo-events/sensor.yaml` if you need different rules).
 
 ### 2.3 Allow the Argo Workflows controller to operate in `cicd`
 
@@ -323,7 +323,7 @@ The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-d
 
 > The Smee relay deployment reads the channel URL from the `smee-relay-url` secret and proxies to `http://github-webhook-eventsource.argo-events.svc.cluster.local:12000/payload`, which is the EventSource service inside the cluster. If you change the EventSource port or endpoint, update the `SMEE_TARGET` env var in `apps/smee-relay/Dockerfile` and `argo-events/smee-relay-deployment.yaml` accordingly. Update `serviceAccountName` in the manifests if you already have dedicated accounts inside `argo-events`, and tweak the Sprig `substr` call in the sensor if you prefer full commit SHAs.
 >
-> The sensor includes an `exprLogical` filter that ignores pushes whose head commit message contains `[workflow]`. This prevents the workflow’s own `update-values` commit from re-triggering itself forever. If you change the message format, update the expression in `argo-events/sensor.yaml` (and the commit message in the workflow template) so they stay in sync.
+> The sensor includes `exprLogical` filters that (1) ignore pushes whose head commit message contains `[workflow]` and (2) only trigger when the push modifies files under `apps/my-service/app/`. This prevents self-triggered loops and ensures we only build when the app source changes. Update the expressions in `argo-events/sensor.yaml` (plus the workflow commit message) if you change these conventions.
 
 ---
 
@@ -359,7 +359,7 @@ Argo CD now renders the ApplicationSet, which creates one Application per enviro
    kubectl argo rollouts promote my-service-dev-hello-world -n my-service-dev
    ```
 5. Port-forward to the service to see the HTML page served by the updated image.
-   The landing page includes a `Current version` banner plus a reminder to edit `apps/my-service/app/index.html`—change that text, push to GitHub, and watch a new rollout happen end-to-end.
+   The landing page includes a `Current version` banner plus a reminder to edit something under `apps/my-service/app/` (for example, `index.html`)—change that text, push to GitHub, and watch a new rollout happen end-to-end.
 
 If anything fails, inspect the workflow pod logs (`argo -n cicd logs -w <workflow-name> -s build-image`), and double-check that your secrets and template parameters match your fork and GHCR repository.
 
@@ -383,7 +383,7 @@ minikube delete
 
 ## 8. Verify end-to-end deployment
 
-1. Make a simple change under `apps/my-service` (for example, edit `apps/my-service/app/index.html` so the page text clearly differs) and push it to your fork's `main` branch.
+1. Make a simple change under `apps/my-service/app/` (for example, edit `apps/my-service/app/index.html` so the page text clearly differs) and push it to your fork's `main` branch. The sensor only fires when files in this path change.
 2. Watch the workflow that the GitHub push triggers and ensure the new image tag reaches GHCR:
    ```bash
    argo -n cicd list
@@ -408,7 +408,7 @@ This verification round-trip proves the webhook, EventSource, Workflow, Argo CD,
 
 - **Workflow cannot push to GHCR**: re-create `ghcr-creds` secret; confirm PAT has `write:packages`. Use `kubectl get secret ghcr-creds -n cicd -o yaml` to verify base64 data exists.
 - **Workflow fails to push to GitHub**: ensure `github-token` secret contains `username`, `email`, and `token` keys. Token must allow `repo` scope.
-- **Workflow keeps recreating**: if the sensor triggers on every push (including the workflow’s own `update-values` commit), ensure `argo-events/sensor.yaml` has an `exprLogical` filter that ignores the `[workflow]` commit message prefix (or whichever marker you choose for automation commits).
+- **Workflow keeps recreating**: if the sensor triggers on every push (including the workflow’s own `update-values` commit), ensure `argo-events/sensor.yaml` has an `exprLogical` filter that ignores the `[workflow]` commit message prefix (or whichever marker you choose for automation commits). Also confirm the expression that requires modifications under `apps/my-service/app/` still matches your desired files.
 - **Workflow fails to build context**: confirm the git artifact is mounted and the Kaniko context points to the service directory (`dir:///workspace/src/apps/my-service`). See `argo-workflows/workflow-template.yaml`.
 - **Workflow cannot create workflowtaskresults**: verify the `workflow-runner` Role in `cicd` includes the `workflowtaskresults` resource under the `argoproj.io` API group.
 - **Sensor does not trigger**: check `kubectl -n argo-events get eventsources,sensors,pods`. Describe the sensor to see last event.
