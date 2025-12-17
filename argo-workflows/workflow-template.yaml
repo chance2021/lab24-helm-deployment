@@ -8,15 +8,15 @@ spec:
   arguments:
     parameters:
       - name: git-repo
-        value: "{{workflow.parameters.git-repo}}"
+        value: ""
       - name: git-revision
-        value: "{{workflow.parameters.git-revision}}"
+        value: ""
       - name: git-before
-        value: "{{workflow.parameters.git-before}}"
+        value: ""
       - name: image-name     # e.g. ${GHCR_REPO}
-        value: "{{workflow.parameters.image-name}}"
+        value: ""
       - name: image-tag
-        value: "{{workflow.parameters.image-tag}}"
+        value: ""
   entrypoint: main
   templates:
     - name: main
