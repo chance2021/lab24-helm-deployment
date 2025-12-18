@@ -73,10 +73,11 @@ spec:
           - name: imagetag
           - name: watchpath
       script:
-        image: alpine:3.19
+        image: busybox
         command: [sh]
         source: |
-          set -euo pipefail
+          #set -euo pipefail
+          echo "Detecting changes in {{inputs.parameters.watchpath}}"
           apk add --no-cache git >/dev/null
           REPO="{{inputs.parameters.gitrepo}}"
           TARGET_RAW="{{inputs.parameters.gitrevision}}"
