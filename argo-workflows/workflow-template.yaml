@@ -46,7 +46,7 @@ spec:
                   value: "{{workflow.parameters.image_name}}"
                 - name: image_tag
                   value: "{{workflow.parameters.image_tag}}"
-            when: "{{steps.detectchanges.outputs.result}} == true"
+            when: "{{steps.detectchanges.outputs.result}} == 'true'"
         - - name: update-values
             template: update-values
             arguments:
