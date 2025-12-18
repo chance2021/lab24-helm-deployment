@@ -70,7 +70,7 @@ spec:
           - name: image_name
           - name: image_tag
           - name: watch_path
-            default: testtest
+            value: testtest
       script:
         image: alpine:3.19
         command: [sh]
