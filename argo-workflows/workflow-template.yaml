@@ -13,63 +13,54 @@ spec:
       - name: image_name
       - name: image_tag
       - name: watch_path
+        value: "{{workflow.parameters.watch_path}}"
         value: apps/my-service/app
   entrypoint: main
   templates:
     - name: main
-      inputs:
-        parameters:
-          - name: git_repo
-          - name: git_revision
-          - name: git_before
-          - name: image_name
-          - name: image_tag
-          - name: watch_path
-            value: apps/my-service/app
       steps:
         - - name: detectchanges
             template: detectchanges
             arguments:
               parameters:
                 - name: git_repo
-                  value: "{{inputs.parameters.git_repo}}"
+                  value: "{{workflow.parameters.git_repo}}"
                 - name: git_revision
-                  value: "{{inputs.parameters.git_revision}}"
+                  value: "{{workflow.parameters.git_revision}}"
                 - name: git_before
-                  value: "{{inputs.parameters.git_before}}"
+                  value: "{{workflow.parameters.git_before}}"
                 - name: image_name
-                  value: "{{inputs.parameters.image_name}}"
+                  value: "{{workflow.parameters.image_name}}"
                 - name: image_tag
-                  value: "{{inputs.parameters.image_tag}}"
+                  value: "{{workflow.parameters.image_tag}}"
                 - name: watch_path
-                  value: "{{inputs.parameters.watch_path}}"
         - - name: build-image
             template: build-image
             arguments:
               parameters:
                 - name: git_repo
-                  value: "{{inputs.parameters.git_repo}}"
+                  value: "{{workflow.parameters.git_repo}}"
                 - name: git_revision
-                  value: "{{inputs.parameters.git_revision}}"
+                  value: "{{workflow.parameters.git_revision}}"
                 - name: image_name
-                  value: "{{inputs.parameters.image_name}}"
+                  value: "{{workflow.parameters.image_name}}"
                 - name: image_tag
-                  value: "{{inputs.parameters.image_tag}}"
+                  value: "{{workflow.parameters.image_tag}}"
             when: "{{steps.detectchanges.outputs.result}} == 'true'"
         - - name: update-values
             template: update-values
             arguments:
               parameters:
                 - name: git_repo
-                  value: "{{inputs.parameters.git_repo}}"
+                  value: "{{workflow.parameters.git_repo}}"
                 - name: git_revision
-                  value: "{{inputs.parameters.git_revision}}"
+                  value: "{{workflow.parameters.git_revision}}"
                 - name: git_before
-                  value: "{{inputs.parameters.git_before}}"
+                  value: "{{workflow.parameters.git_before}}"
                 - name: image_name
-                  value: "{{inputs.parameters.image_name}}"
+                  value: "{{workflow.parameters.image_name}}"
                 - name: image_tag
-                  value: "{{inputs.parameters.image_tag}}"
+                  value: "{{workflow.parameters.image_tag}}"
             when: "{{steps.detectchanges.outputs.result}} == 'true'"
     - name: detectchanges
       inputs:

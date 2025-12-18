@@ -54,7 +54,7 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: push
-                dataTemplate: "{{ .Input.body.before }}"
+                dataKey: body.before
               dest: spec.arguments.parameters.2.value
             - src:
                 dependencyName: push
