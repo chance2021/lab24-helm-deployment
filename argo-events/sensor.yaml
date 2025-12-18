@@ -36,16 +36,18 @@ spec:
                   name: git-build-push
                 arguments:
                   parameters:
-                    - name: git-repo
+                    - name: git_repo
                       value: https://github.com/chance2021/lab24-argo-cicd.git
-                    - name: git-revision
+                    - name: git_revision
                       value: ""
-                    - name: git-before
+                    - name: git_before
                       value: ""
-                    - name: image-name
+                    - name: image_name
                       value: ghcr.io/chance2021/lab24-argo-cicd
-                    - name: image-tag
+                    - name: image_tag
                       value: ""
+                    - name: watch_path
+                      value: apps/my-service/app
           parameters:
             - src:
                 dependencyName: push

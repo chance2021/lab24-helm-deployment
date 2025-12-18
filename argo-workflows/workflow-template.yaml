@@ -5,15 +5,23 @@ metadata:
   namespace: cicd
 spec:
   serviceAccountName: workflow-runner
+  arguments:
+    parameters:
+      - name: git_repo
+      - name: git_revision
+      - name: git_before
+      - name: image_name     # e.g. ${GHCR_REPO}
+      - name: image_tag
+      - name: watch_path
   entrypoint: main
   arguments:
     parameters:
-      - name: git-repo
-      - name: git-revision
-      - name: git-before
-      - name: image-name
-      - name: image-tag
-      - name: watch-path
+      - name: git_repo
+      - name: git_revision
+      - name: git_before
+      - name: image_name
+      - name: image_tag
+      - name: watch_path
         value: apps/my-service/app
   templates:
     - name: main
@@ -22,66 +30,67 @@ spec:
             template: detectchanges
             arguments:
               parameters:
-                - name: git-repo
-                  value: "{{workflow.parameters['git-repo']}}"
-                - name: git-revision
-                  value: "{{workflow.parameters['git-revision']}}"
-                - name: git-before
-                  value: "{{workflow.parameters['git-before']}}"
-                - name: image-name
-                  value: "{{workflow.parameters['image-name']}}"
-                - name: image-tag
-                  value: "{{workflow.parameters['image-tag']}}"
-                - name: watch-path
-                  value: "{{workflow.parameters['watch-path']}}"
-        - - name: build-image
-            template: build-image
+                - name: git_repo
+                  value: "{{workflow.parameters.git_repo}}"
+                - name: git_revision
+                  value: "{{workflow.parameters.git_revision}}"
+                - name: git_before
+                  value: "{{workflow.parameters.git_before}}"
+                - name: image_name
+                  value: "{{workflow.parameters.image_name}}"
+                - name: image_tag
+                  value: "{{workflow.parameters.image_tag}}"
+                - name: watch_path
+                  value: "{{workflow.parameters.watch_path}}"
+        - - name: build_image
+            template: build_image
             arguments:
               parameters:
-                - name: git-repo
-                  value: "{{workflow.parameters['git-repo']}}"
-                - name: git-revision
-                  value: "{{workflow.parameters['git-revision']}}"
-                - name: image-name
-                  value: "{{workflow.parameters['image-name']}}"
-                - name: image-tag
-                  value: "{{workflow.parameters['image-tag']}}"
+                - name: git_repo
+                  value: "{{workflow.parameters.git_repo}}"
+                - name: git_revision
+                  value: "{{workflow.parameters.git_revision}}"
+                - name: image_name
+                  value: "{{workflow.parameters.image_name}}"
+                - name: image_tag
+                  value: "{{workflow.parameters.image_tag}}"
             when: "{{steps.detectchanges.outputs.result}} == true"
-        - - name: update-values
-            template: update-values
+        - - name: update_values
+            template: update_values
             arguments:
               parameters:
-                - name: git-repo
-                  value: "{{workflow.parameters['git-repo']}}"
-                - name: git-revision
-                  value: "{{workflow.parameters['git-revision']}}"
-                - name: git-before
-                  value: "{{workflow.parameters['git-before']}}"
-                - name: image-name
-                  value: "{{workflow.parameters['image-name']}}"
-                - name: image-tag
-                  value: "{{workflow.parameters['image-tag']}}"
+                - name: git_repo
+                  value: "{{workflow.parameters.git_repo}}"
+                - name: git_revision
+                  value: "{{workflow.parameters.git_revision}}"
+                - name: git_before
+                  value: "{{workflow.parameters.git_before}}"
+                - name: image_name
+                  value: "{{workflow.parameters.image_name}}"
+                - name: image_tag
+                  value: "{{workflow.parameters.image_tag}}"
             when: "{{steps.detectchanges.outputs.result}} == true"
     - name: detectchanges
       inputs:
         parameters:
-          - name: git-repo
-          - name: git-revision
-          - name: git-before
-          - name: image-name
-          - name: image-tag
+          - name: git_repo
+          - name: git_revision
+          - name: git_before
+          - name: image_name
+          - name: image_tag
+          - name: watch_path
       script:
         image: alpine:3.19
         command: [sh]
         source: |
           set -euo pipefail
           apk add --no-cache git
-          REPO="{{inputs.parameters['git-repo']}}"
-          TARGET_RAW="{{inputs.parameters['git-revision']}}"
-          BEFORE_RAW="{{inputs.parameters['git-before']}}"
-          IMAGE_NAME="{{inputs.parameters['image-name']}}"
-          IMAGE_NAMETAG="{{inputs.parameters['image-tag']}}"
-          WATCH_PATH="{{inputs.parameters['watch-path']}}"
+          REPO="{{inputs.parameters.git_repo}}"
+          TARGET_RAW="{{inputs.parameters.git_revision}}"
+          BEFORE_RAW="{{inputs.parameters.git_before}}"
+          IMAGE_NAME="{{inputs.parameters.image_name}}"
+          IMAGE_NAMETAG="{{inputs.parameters.image_tag}}"
+          WATCH_PATH="{{inputs.parameters.watch_path}}"
           echo "Cloning repo ${REPO}" >&2
           echo "Using tag ${IMAGE_NAMETAG}" >&2
           git clone "${REPO}" repo >&2
@@ -123,22 +132,22 @@ spec:
     - name: build-image
       inputs:
         parameters:
-          - name: git-repo
-          - name: git-revision
-          - name: image-name
-          - name: image-tag
+          - name: git_repo
+          - name: git_revision
+          - name: image_name
+          - name: image_tag
         artifacts:
           - name: source
             path: /workspace/src
             git:
-              repo: "{{inputs.parameters.git-repo}}"
-              revision: "{{inputs.parameters.git-revision}}"
+              repo: "{{inputs.parameters.git_repo}}"
+              revision: "{{inputs.parameters.git_revision}}"
       container:
         image: gcr.io/kaniko-project/executor:v1.16.0
         command: ["/kaniko/executor"]
         args:
           - "--context=dir:///workspace/src/apps/my-service"
-          - "--destination={{inputs.parameters.image-name}}:{{inputs.parameters.image-tag}}"
+          - "--destination={{inputs.parameters.image_name}}:{{inputs.parameters.image_tag}}"
           - "--dockerfile=Dockerfile"
           - "--snapshotMode=redo"
           - "--cleanup"
@@ -155,25 +164,25 @@ spec:
     - name: update-values
       inputs:
         parameters:
-          - name: git-repo
-          - name: git-revision
-          - name: image-name
-          - name: image-tag
+          - name: git_repo
+          - name: git_revision
+          - name: image_name
+          - name: image_tag
       script:
         image: alpine:3.19
         command: [sh]
         source: |
           set -euo pipefail
           apk add --no-cache git yq
-          git clone "{{inputs.parameters.git-repo}}" repo
+          git clone "{{inputs.parameters.git_repo}}" repo
           cd repo
-          git checkout "{{inputs.parameters.git-revision}}"
-          yq -i ".image.repository = \"{{inputs.parameters.image-name}}\"" apps/my-service/helm/values.yaml
-          yq -i ".image.tag = \"{{inputs.parameters.image-tag}}\"" apps/my-service/helm/values.yaml
+          git checkout "{{inputs.parameters.git_revision}}"
+          yq -i ".image.repository = \"{{inputs.parameters.image_name}}\"" apps/my-service/helm/values.yaml
+          yq -i ".image.tag = \"{{inputs.parameters.image_tag}}\"" apps/my-service/helm/values.yaml
           # Ensure git identity is always set even if secrets are blank
           git config user.name "${GITHUB_USER}"
           git config user.email "workflow@example.com"
-          git commit -am "[workflow] update rollout image to {{inputs.parameters.image-tag}}"
+          git commit -am "[workflow] update rollout image to {{inputs.parameters.image_tag}}"
           git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${GIT_REMOTE}"
           git push origin HEAD:main
         env:
