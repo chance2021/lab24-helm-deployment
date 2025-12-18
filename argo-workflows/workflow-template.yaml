@@ -77,7 +77,7 @@ spec:
         command: [sh]
         source: |
           #set -euo pipefail
-          REPO="{{inputs.parameters.gitrepo}}"
+          repo="{{inputs.parameters.gitrepo}}"
           TARGET_RAW="{{inputs.parameters.gitrevision}}"
           BEFORE_RAW="{{inputs.parameters.gitbefore}}"
           watchpath="{{inputs.parameters.watchpath}}"
@@ -85,8 +85,8 @@ spec:
           echo "Between {{inputs.parameters.gitbefore}} and {{inputs.parameters.gitrevision}}"
           echo "Cloning repo {{inputs.parameters.gitrepo}}"
           RESULT_FILE="/tmp/should-build"
-          echo "Cloning repo ${REPO}"
-          git clone "${REPO}" repo >&2
+          echo "Cloning repo ${repo}"
+          git clone "${repo}" repo >&2
           cd repo
           ZERO_SHA="0000000000000000000000000000000000000000"
           TARGET="$(printf %s "${TARGET_RAW}" | tr -d '\r')"
