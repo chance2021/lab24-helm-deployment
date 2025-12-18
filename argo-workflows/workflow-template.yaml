@@ -77,14 +77,14 @@ spec:
         command: [sh]
         source: |
           #set -euo pipefail
-          echo "Detecting changes in {{inputs.parameters.watchpath}}"
-          echo "Between {{inputs.parameters.gitbefore}} and {{inputs.parameters.gitrevision}}"
-          echo "Cloning repo {{inputs.parameters.gitrepo}}"
-          apk add --no-cache git >/dev/null
           REPO="{{inputs.parameters.gitrepo}}"
           TARGET_RAW="{{inputs.parameters.gitrevision}}"
           BEFORE_RAW="{{inputs.parameters.gitbefore}}"
           watchpath="{{inputs.parameters.watchpath}}"
+          echo "Detecting changes in {{inputs.parameters.watchpath}}"
+          echo "Between {{inputs.parameters.gitbefore}} and {{inputs.parameters.gitrevision}}"
+          echo "Cloning repo {{inputs.parameters.gitrepo}}"
+          apk add --no-cache git >/dev/null
           RESULT_FILE="/tmp/should-build"
           echo "Cloning repo ${REPO}" >&2
           git clone "${REPO}" repo >&2
