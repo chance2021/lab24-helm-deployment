@@ -42,6 +42,7 @@ spec:
                     - name: image_name
                     - name: image_tag
                     - name: watch_path
+                      value: apps/my-service/app
           parameters:
             - src:
                 dependencyName: push
