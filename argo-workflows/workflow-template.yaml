@@ -82,7 +82,7 @@ spec:
           BEFORE_RAW="{{inputs.parameters.git_before}}"
           IMAGE_NAME="{{inputs.parameters.image_name}}"
           IMAGE_NAMETAG="{{inputs.parameters.image_tag}}"
-          WATCH_PATH="{{ inputs.parameters.watch_path }}"
+          WATCH_PATH="{{workflow.parameters.watch_path}}"
           echo "Cloning repo ${REPO}" >&2
           echo "Using tag ${IMAGE_NAMETAG}" >&2
           echo "Watching path ${WATCH_PATH}" >&2
