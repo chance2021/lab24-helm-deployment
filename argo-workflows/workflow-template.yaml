@@ -76,7 +76,7 @@ spec:
         image: alpine:3.19
         command: [sh]
         source: |
-          set -euo pipefail
+          #set -euo pipefail
           apk add --no-cache git
           REPO="{{inputs.parameters.git_repo}}"
           TARGET_RAW="{{inputs.parameters.git_revision}}"
