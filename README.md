@@ -360,7 +360,7 @@ The repo now includes `argo-events/event-source.yaml`, `argo-events/smee-relay-d
    docker push "$SMEE_RELAY_IMAGE"
    ```
    > Publish the repository (e.g., `ghcr.io/chance2021/smee-relay:latest`) as **public** in GitHub Packages so your cluster can pull it without extra credentials and your local builds can `docker pull` it for verification.
-4. Edit `argo-events/smee-relay-deployment.yaml` so the image reference matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` so the hard-coded `gitrepo` parameter points at your fork (e.g., `https://github.com/${GITHUB_USER}/lab24-argo-cicd.git`) and the `image_name` parameter matches your `$GHCR_REPO` value if it still points at the example repo.
+4. Edit `argo-events/smee-relay-deployment.yaml` so the image reference matches `$SMEE_RELAY_IMAGE` (and adjust the secret name if needed). Update `argo-events/sensor.yaml` so the hard-coded `gitrepo` parameter points at your fork (e.g., `https://github.com/${GITHUB_USER}/lab24-argo-cicd.git`) and the `imagename` parameter matches your `$GHCR_REPO` value if it still points at the example repo.
 5. Grant the Argo Events service account permission to submit workflows in `cicd`:
    ```bash
    kubectl apply -f argo-events/workflow-trigger-rbac.yaml

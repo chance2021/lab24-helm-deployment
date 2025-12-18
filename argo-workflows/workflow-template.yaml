@@ -10,8 +10,8 @@ spec:
       - name: gitrepo
       - name: gitrevision
       - name: gitbefore
-      - name: image_name
-      - name: image_tag
+      - name: imagename
+      - name: imagetag
       - name: watchpath
         value: apps/my-service/app
   entrypoint: main
@@ -28,10 +28,10 @@ spec:
                   value: "{{workflow.parameters.gitrevision}}"
                 - name: gitbefore
                   value: "{{workflow.parameters.gitbefore}}"
-                - name: image_name
-                  value: "{{workflow.parameters.image_name}}"
-                - name: image_tag
-                  value: "{{workflow.parameters.image_tag}}"
+                - name: imagename
+                  value: "{{workflow.parameters.imagename}}"
+                - name: imagetag
+                  value: "{{workflow.parameters.imagetag}}"
                 - name: watchpath
                   value: "{{workflow.parameters.watchpath}}"
         - - name: build-image
@@ -42,10 +42,10 @@ spec:
                   value: "{{workflow.parameters.gitrepo}}"
                 - name: gitrevision
                   value: "{{workflow.parameters.gitrevision}}"
-                - name: image_name
-                  value: "{{workflow.parameters.image_name}}"
-                - name: image_tag
-                  value: "{{workflow.parameters.image_tag}}"
+                - name: imagename
+                  value: "{{workflow.parameters.imagename}}"
+                - name: imagetag
+                  value: "{{workflow.parameters.imagetag}}"
             when: "{{steps.detectchanges.outputs.parameters.should_build}} == 'true'"
         - - name: update-values
             template: update-values
@@ -57,10 +57,10 @@ spec:
                   value: "{{workflow.parameters.gitrevision}}"
                 - name: gitbefore
                   value: "{{workflow.parameters.gitbefore}}"
-                - name: image_name
-                  value: "{{workflow.parameters.image_name}}"
-                - name: image_tag
-                  value: "{{workflow.parameters.image_tag}}"
+                - name: imagename
+                  value: "{{workflow.parameters.imagename}}"
+                - name: imagetag
+                  value: "{{workflow.parameters.imagetag}}"
             when: "{{steps.detectchanges.outputs.parameters.should_build}} == 'true'"
 
     - name: detectchanges
@@ -69,8 +69,8 @@ spec:
           - name: gitrepo
           - name: gitrevision
           - name: gitbefore
-          - name: image_name
-          - name: image_tag
+          - name: imagename
+          - name: imagetag
           - name: watchpath
       script:
         image: alpine:3.19
@@ -125,8 +125,8 @@ spec:
         parameters:
           - name: gitrepo
           - name: gitrevision
-          - name: image_name
-          - name: image_tag
+          - name: imagename
+          - name: imagetag
         artifacts:
           - name: source
             path: /workspace/src
@@ -138,7 +138,7 @@ spec:
         command: ["/kaniko/executor"]
         args:
           - "--context=dir:///workspace/src/apps/my-service"
-          - "--destination={{inputs.parameters.image_name}}:{{inputs.parameters.image_tag}}"
+          - "--destination={{inputs.parameters.imagename}}:{{inputs.parameters.imagetag}}"
           - "--dockerfile=Dockerfile"
           - "--snapshotMode=redo"
           - "--cleanup"
@@ -159,8 +159,8 @@ spec:
           - name: gitrepo
           - name: gitrevision
           - name: gitbefore
-          - name: image_name
-          - name: image_tag
+          - name: imagename
+          - name: imagetag
       script:
         image: alpine:3.19
         command: [sh]
@@ -170,11 +170,11 @@ spec:
           git clone "{{inputs.parameters.gitrepo}}" repo
           cd repo
           git checkout "{{inputs.parameters.gitrevision}}"
-          yq -i ".image.repository = \"{{inputs.parameters.image_name}}\"" apps/my-service/helm/values.yaml
-          yq -i ".image.tag = \"{{inputs.parameters.image_tag}}\"" apps/my-service/helm/values.yaml
+          yq -i ".image.repository = \"{{inputs.parameters.imagename}}\"" apps/my-service/helm/values.yaml
+          yq -i ".image.tag = \"{{inputs.parameters.imagetag}}\"" apps/my-service/helm/values.yaml
           git config user.name "${GITHUB_USER}"
           git config user.email "workflow@example.com"
-          git commit -am "[workflow] update rollout image to {{inputs.parameters.image_tag}}"
+          git commit -am "[workflow] update rollout image to {{inputs.parameters.imagetag}}"
           git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${GIT_REMOTE}"
           git push origin HEAD:main
       env:
