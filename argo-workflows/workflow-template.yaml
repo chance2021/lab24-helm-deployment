@@ -42,8 +42,8 @@ spec:
                   value: "{{workflow.parameters.image_tag}}"
                 - name: watch_path
                   value: "{{workflow.parameters.watch_path}}"
-        - - name: build_image
-            template: build_image
+        - - name: build-image
+            template: build-image
             arguments:
               parameters:
                 - name: git_repo
