@@ -82,7 +82,7 @@ spec:
           echo "Between {{inputs.parameters.gitbefore}} and {{inputs.parameters.gitrevision}}"
           echo "Cloning repo {{inputs.parameters.gitrepo}}"
           RESULT_FILE="/tmp/should-build"
-          echo "Result file: $${RESULT_FILE}"
+          echo "Result file: ${RESULT_FILE}"
           git clone "{{inputs.parameters.gitrepo}}" repo >&2
           cd repo
           ZERO_SHA="0000000000000000000000000000000000000000"
@@ -180,7 +180,9 @@ spec:
           git config user.name "${GITHUB_USER}"
           git config user.email "workflow@example.com"
           git commit -am "[workflow] update rollout image to {{inputs.parameters.imagetag}}"
-          git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${GIT_REMOTE}"
+          REMOTE_URL="{{inputs.parameters.gitrepo}}"
+          REMOTE_HOST_PATH="${REMOTE_URL#https://}"
+          git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${REMOTE_HOST_PATH}"
           git push origin HEAD:main
       env:
         - name: GITHUB_USER
@@ -193,5 +195,3 @@ spec:
             secretKeyRef:
               name: github-token
               key: token
-        - name: GIT_REMOTE
-          value: ${GIT_REMOTE}

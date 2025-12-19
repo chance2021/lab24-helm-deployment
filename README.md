@@ -171,14 +171,7 @@ This grants the `argo-workflow-controller` service account (used by the controll
 
 The template below uses Kaniko to build/push the container image straight from the Git repo and then patches `apps/my-service/helm/values.yaml` to reflect the new image tag before committing back to `main`.
 
-Save as `argo/workflow-template.yaml` and apply it. If you kept shell-style placeholders such as `${GIT_REMOTE}` in the manifest, render them first with `envsubst`. Write the rendered output to a temp location (e.g. `/tmp`) so you never commit secrets back into the repo:
-
-```bash
-envsubst < argo-workflows/workflow-template.yaml > /tmp/workflow-template.yaml
-kubectl apply -f /tmp/workflow-template.yaml
-```
-
-Otherwise, you can apply the file directly:
+Save as `argo-workflows/workflow-template.yaml` and apply it directly (do **not** run `envsubst`; the script section intentionally contains shell variables such as `$RESULT_FILE` that would be wiped out by premature substitution):
 
 ```bash
 kubectl apply -f argo-workflows/workflow-template.yaml
@@ -309,9 +302,11 @@ spec:
           yq -i ".image.tag = \"{{inputs.parameters.imagetag}}\"" apps/my-service/helm/values.yaml
           # Ensure git identity is always set even if secrets are blank
           git config user.name "${GITHUB_USER}"
-          git config user.email "${GITHUB_EMAIL}"
+          git config user.email "workflow@example.com"
           git commit -am "[workflow] update rollout image to {{inputs.parameters.imagetag}}"
-          git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${GIT_REMOTE}"
+          REMOTE_URL="{{inputs.parameters.gitrepo}}"
+          REMOTE_HOST_PATH="${REMOTE_URL#https://}"
+          git remote set-url origin "https://${GITHUB_USER}:${GITHUB_TOKEN}@${REMOTE_HOST_PATH}"
           git push origin HEAD:main
         env:
           - name: GITHUB_USER
@@ -319,21 +314,14 @@ spec:
               secretKeyRef:
                 name: github-token
                 key: username
-          - name: GITHUB_EMAIL
-            valueFrom:
-              secretKeyRef:
-                name: github-token
-                key: email
           - name: GITHUB_TOKEN
             valueFrom:
               secretKeyRef:
                 name: github-token
                 key: token
-          - name: GIT_REMOTE
-            value: ${GIT_REMOTE}
 ```
 
-> The template assumes you always push to `main`. Use Workflow parameters if you need branch-specific behavior. If you keep `${GHCR_REPO}` or `${GIT_REMOTE}` literal in the YAML, run `envsubst < argo/workflow-template.yaml.tmpl > argo/workflow-template.yaml` (or substitute manually) before applying so Kubernetes receives the concrete values.
+> The template assumes you always push to `main`. Use Workflow parameters if you need branch-specific behavior, and keep automation credentials exclusively in Kubernetes secrets (the workflow never needs pre-rendered `${...}` placeholders).
 
 ---
 
@@ -462,6 +450,7 @@ This verification round-trip proves the webhook, EventSource, Workflow, Argo CD,
 - **Workflow fails to push to GitHub**: ensure `github-token` secret contains `username`, `email`, and `token` keys. Token must allow `repo` scope.
 - **Workflow keeps recreating**: the sensor now forwards every push, so expect a lightweight workflow to run for automation commits too (it exits before `build_image` because the diff has no app changes). If you want to drop these entirely, add a filter back in `argo-events/sensor.yaml` (e.g., ignore `workflow@example.com`) or adjust the `detect-changes` step.
 - **Workflow fails to build context**: confirm the git artifact is mounted and the Kaniko context points to the service directory (`dir:///workspace/src/apps/my-service`). See `argo-workflows/workflow-template.yaml`.
+- **WorkflowTemplate script variables become empty**: avoid running `envsubst` on `workflow-template.yaml`—it will replace script-internal variables such as `$RESULT_FILE`, `$TARGET`, etc., causing the detect-changes step to malfunction. Apply the manifest directly and rely on Kubernetes secrets/parameters for sensitive data.
 - **Workflow cannot create workflowtaskresults**: verify the `workflow-runner` Role in `cicd` includes the `workflowtaskresults` resource under the `argoproj.io` API group.
 - **Sensor does not trigger**: check `kubectl -n argo-events get eventsources,sensors,pods`. Describe the sensor to see last event.
 - **Rollout stuck**: use `kubectl argo rollouts analyze ...` or check pods in the target namespace. Remember Argo Rollouts requires the CRD installed cluster-wide.
