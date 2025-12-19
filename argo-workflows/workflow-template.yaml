@@ -82,7 +82,7 @@ spec:
           echo "Between {{inputs.parameters.gitbefore}} and {{inputs.parameters.gitrevision}}"
           echo "Cloning repo {{inputs.parameters.gitrepo}}"
           RESULT_FILE="/tmp/should-build"
-          echo "Result file: \${RESULT_FILE}"
+          echo "Result file: $${RESULT_FILE}"
           git clone "{{inputs.parameters.gitrepo}}" repo >&2
           cd repo
           ZERO_SHA="0000000000000000000000000000000000000000"
